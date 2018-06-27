@@ -4,7 +4,7 @@ const int Relay_Number[Relay_Output_MAX] = {Relay_Number_Start, Relay_Number_Sta
 
 const int StatusLED = 13;
 
-const int Serial_Baud_Rate = 115200;
+const long Serial_Baud_Rate = 115200;
 
 const long HeartBit_Timer_Max = 1000; // unit is ms. 1000 = 1sec.
 
