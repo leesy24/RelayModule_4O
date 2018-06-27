@@ -43,11 +43,8 @@ void loop() {
 }
 
 const int state_IDLE = 0;
-const int state_DATA_0 = 1;
-const int state_DATA_1 = 2;
-const int state_DATA_2 = 3;
-const int state_DATA_3 = 4;
-const int state_CHECK_SUM = 5;
+const int state_DATA_n = 1;
+const int state_CHECK_SUM = Relay_Output_MAX + 1;
 int state = state_IDLE; // Idle
 char data[4] = {0, 0, 0, 0};
 char sum = '0';
@@ -57,44 +54,43 @@ void serial1Event() {
     digitalWrite(StatusLED, HIGH);
     char inChar = (char)Serial1.read();
     //Serial1.print("state="); Serial1.print(state); Serial1.print("\n\r");
-    switch (state) {
-      case state_IDLE:
-        if (inChar != 'R') break;
-        state = state_DATA_0;
-        sum = '0';
-        break;
-      case state_DATA_0:
-      case state_DATA_1:
-      case state_DATA_2:
-      case state_DATA_3:
-        if (inChar != '0' && inChar != '1') {
+    do {
+      switch (state) {
+        case state_IDLE:
+          if (inChar != 'R') break;
+          state = state_DATA_n;
+          sum = '0';
+          break;
+        case state_CHECK_SUM:
+          int i;
+          if (inChar != sum) {
+            state = state_IDLE;
+            continue;
+          }
+          for (i = 0; i < Relay_Output_MAX; i ++) {
+            //Serial1.print("data["); Serial1.print(i); Serial1.print("]="); Serial1.print(data[i]); Serial1.print("\n\r");
+            if (data[i] == '1') Relay_on[i] = true;
+            else                Relay_on[i] = false;
+            HeartBit_String[i + 1] = data[i];
+          }
+          HeartBit_String[i + 1] = sum;
+          HeartBit_Timer_Start = millis();
+          Serial1.print(HeartBit_String);
           state = state_IDLE;
           break;
-        }
-        data[state - state_DATA_0] = inChar;
-        sum += inChar - '0';
-        //Serial1.print("sum="); Serial1.print(sum, DEC); Serial1.print("\n\r");
-        state ++;
-        break;
-      case state_CHECK_SUM:
-        int i;
-        if (inChar != sum) {
-          state = state_IDLE;
+        default: // for state_DATA_n:
+          if (inChar != '0' && inChar != '1') {
+            state = state_IDLE;
+            continue;
+          }
+          data[state - state_DATA_n] = inChar;
+          sum += inChar - '0';
+          //Serial1.print("sum="); Serial1.print(sum, DEC); Serial1.print("\n\r");
+          state ++;
           break;
-        }
-        for (i = 0; i < Relay_Output_MAX; i ++) {
-          //Serial1.print("data["); Serial1.print(i); Serial1.print("]="); Serial1.print(data[i]); Serial1.print("\n\r");
-          if (data[i] == '1') Relay_on[i] = true;
-          else                Relay_on[i] = false;
-          HeartBit_String[i + 1] = data[i];
-        }
-        HeartBit_String[i + 1] = sum;
-        HeartBit_Timer_Start = millis();
-        Serial1.print(HeartBit_String);
-        state = state_IDLE;
-        break;
-    }
+      }
+      break;
+    } while (true);
   }
   digitalWrite(StatusLED, LOW);
 }
-
