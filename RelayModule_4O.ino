@@ -6,11 +6,11 @@ const int StatusLED = 13;
 
 const long Serial_Baud_Rate = 115200;
 
-const long HeartBit_Timer_Max = 1000; // unit is ms. 1000 = 1sec.
+const long Heartbeat_Timer_Max = 1000; // unit is ms. 1000 = 1sec.
 
 boolean Relay_on[Relay_Output_MAX];
-long HeartBit_Timer_Start; // unit is ms.
-char HeartBit_String[Relay_Output_MAX+2];
+long Heartbeat_Timer_Start; // unit is ms.
+char Heartbeat_String[Relay_Output_MAX+2];
 
 void setup() {
   Serial1.begin(Serial_Baud_Rate);
@@ -18,16 +18,16 @@ void setup() {
   pinMode(StatusLED, OUTPUT);
 
   int i;
-  HeartBit_String[0] = 'R';
+  Heartbeat_String[0] = 'R';
   for (i = 0; i < Relay_Output_MAX; i ++)
   {
     pinMode(Relay_Number[i] , OUTPUT);
     Relay_on[i] = false;
-    HeartBit_String[i + 1] = '0';
+    Heartbeat_String[i + 1] = '0';
   }
-  HeartBit_String[i + 1] = '0';
+  Heartbeat_String[i + 1] = '0';
 
-  HeartBit_Timer_Start = millis();
+  Heartbeat_Timer_Start = millis();
 }
 
 void loop() {
@@ -43,14 +43,14 @@ void loop() {
   long timer = millis();
   long timer_diff;
 
-  if (timer < HeartBit_Timer_Start)
-    timer_diff = 0xffffffff - HeartBit_Timer_Start + timer;
+  if (timer < Heartbeat_Timer_Start)
+    timer_diff = 0xffffffff - Heartbeat_Timer_Start + timer;
   else
-    timer_diff = timer - HeartBit_Timer_Start;
-  if (timer_diff >= HeartBit_Timer_Max) {
-    HeartBit_Timer_Start = millis();
+    timer_diff = timer - Heartbeat_Timer_Start;
+  if (timer_diff >= Heartbeat_Timer_Max) {
+    Heartbeat_Timer_Start = millis();
     digitalWrite(StatusLED, HIGH);
-    Serial1.print(HeartBit_String);
+    Serial1.print(Heartbeat_String);
     Serial1.flush();
     digitalWrite(StatusLED, LOW);
   }
@@ -85,11 +85,11 @@ void serial1Event() {
             //Serial1.print("data["); Serial1.print(i); Serial1.print("]="); Serial1.print(data[i]); Serial1.print("\n\r");
             if (data[i] == '1') Relay_on[i] = true;
             else                Relay_on[i] = false;
-            HeartBit_String[i + 1] = data[i];
+            Heartbeat_String[i + 1] = data[i];
           }
-          HeartBit_String[i + 1] = check_sum;
-          HeartBit_Timer_Start = millis();
-          Serial1.print(HeartBit_String);
+          Heartbeat_String[i + 1] = check_sum;
+          Heartbeat_Timer_Start = millis();
+          Serial1.print(Heartbeat_String);
           state = state_IDLE;
           break;
         default: // for state_DATA_n:
