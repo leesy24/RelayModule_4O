@@ -29,6 +29,7 @@ unsigned long Auto_Reply_time_start; // unit is ms.
 char Auto_Reply_string[RELAY_NUM_OF_OUTPUT_MAX+2];
 
 void setup() {
+  Serial.begin(SERIAL_BAUD_RATE);
   Serial1.begin(SERIAL_BAUD_RATE);
 
   pinMode(LED_STATUS_PORT_NUMBER, OUTPUT);
@@ -162,7 +163,9 @@ void serial1Event() {
             if (data[i] == '1') Relay_on[i] = true;
             else                Relay_on[i] = false;
             if (AUTO_REPLY_ENABLED) Auto_Reply_string[i + 1] = data[i];
+            Serial.print(data[i]);
           }
+          Serial.print("\n\r");
           if (AUTO_REPLY_ENABLED) {
             Auto_Reply_string[i + 1] = check_sum;
             Auto_Reply_time_start = millis();
