@@ -8,11 +8,20 @@ const long SERIAL_BAUD_RATE = 115200;
 
 boolean Relay_on[RELAY_NUM_OF_OUTPUT_MAX];
 
-//const bool HEARTBEAT_ENABLED = true;
-const bool HEARTBEAT_ENABLED = false;
-const long HEARTBEAT_TIME_OUT = 1000; // unit is ms. 1000 = 1sec.
-long Heartbeat_time_start; // unit is ms.
-char Heartbeat_string[RELAY_NUM_OF_OUTPUT_MAX+2];
+const bool HEARTBEAT_ENABLED = true;
+//const bool HEARTBEAT_ENABLED = false;
+const unsigned long HEARTBEAT_TIME_OUT_DEFAULT = 1000; // unit is ms. 1000 = 1sec.
+const unsigned long HEARTBEAT_TIME_OUT_RECEIVED = 25; // unit is ms. 1000 = 1sec.
+const int HEARTBEAT_TIME_OUT_RECEIVED_CNT = 10;
+unsigned long Heartbeat_time_start; // unit is ms.
+unsigned long Heartbeat_time_out_value; // unit is ms.
+int Heartbeat_time_out_reset_cnt;
+
+//const bool AUTO_REPLY_ENABLED = true;
+const bool AUTO_REPLY_ENABLED = false;
+const unsigned long AUTO_REPLY_TIME_OUT = 1000; // unit is ms. 1000 = 1sec.
+unsigned long Auto_Reply_time_start; // unit is ms.
+char Auto_Reply_string[RELAY_NUM_OF_OUTPUT_MAX+2];
 
 void setup() {
   Serial1.begin(SERIAL_BAUD_RATE);
@@ -27,15 +36,21 @@ void setup() {
     Relay_on[i] = false;
   }
 
-  if (HEARTBEAT_ENABLED) {
-    Heartbeat_string[0] = 'R';
+  if (AUTO_REPLY_ENABLED) {
+    Auto_Reply_string[0] = 'R';
     for (i = 0; i < RELAY_NUM_OF_OUTPUT_MAX; i ++)
     {
-      Heartbeat_string[i + 1] = '0';
+      Auto_Reply_string[i + 1] = '0';
     }
-    Heartbeat_string[i + 1] = '0';
+    Auto_Reply_string[i + 1] = '0';
 
+    Auto_Reply_time_start = millis();
+  }
+
+  if (HEARTBEAT_ENABLED) {
     Heartbeat_time_start = millis();
+    Heartbeat_time_out_value = HEARTBEAT_TIME_OUT_DEFAULT;
+    Heartbeat_time_out_reset_cnt = 0;
   }
 }
 
@@ -49,21 +64,41 @@ void loop() {
 
   serial1Event();
 
-  if (HEARTBEAT_ENABLED) {
-    long timer = millis();
-    long timer_diff;
+  if (AUTO_REPLY_ENABLED) {
+    unsigned long time = millis();
+    unsigned long time_diff;
 
-    if (timer < Heartbeat_time_start)
-      timer_diff = 0xffffffff - Heartbeat_time_start + timer;
+    if (time < Auto_Reply_time_start)
+      time_diff = 0xffffffff - Auto_Reply_time_start + time;
     else
-      timer_diff = timer - Heartbeat_time_start;
-    if (timer_diff >= HEARTBEAT_TIME_OUT) {
-      Heartbeat_time_start = millis();
-      digitalWrite(LED_STATUS_PORT_NUMBER, HIGH);
-      Serial1.print(Heartbeat_string);
+      time_diff = time - Auto_Reply_time_start;
+    if (time_diff >= AUTO_REPLY_TIME_OUT) {
+      Auto_Reply_time_start = millis();
+      Serial1.print(Auto_Reply_string);
       Serial1.flush();
-      digitalWrite(LED_STATUS_PORT_NUMBER, LOW);
     }
+  }
+
+  if (HEARTBEAT_ENABLED) {
+    unsigned long time = millis();
+    unsigned long time_diff;
+
+    if (time < Heartbeat_time_start)
+      time_diff = 0xffffffff - Heartbeat_time_start + time;
+    else
+      time_diff = time - Heartbeat_time_start;
+    if (time_diff >= Heartbeat_time_out_value) {
+      digitalWrite(
+        LED_STATUS_PORT_NUMBER,
+        (digitalRead(LED_STATUS_PORT_NUMBER) == HIGH)?LOW:HIGH);
+      Heartbeat_time_start = millis();
+      if (Heartbeat_time_out_reset_cnt) {
+        Heartbeat_time_out_reset_cnt --;
+      }
+      else {
+        Heartbeat_time_out_value = HEARTBEAT_TIME_OUT_DEFAULT;
+      }
+   }
   }
 }
 
@@ -77,7 +112,6 @@ void serial1Event() {
   static char check_sum;
 
   while (Serial1.available()) {
-    digitalWrite(LED_STATUS_PORT_NUMBER, HIGH);
     char read_char = (char)Serial1.read();
     //Serial1.print("state="); Serial1.print(state); Serial1.print("\n\r");
     do { // do while loop for continue statement on switch.
@@ -93,16 +127,20 @@ void serial1Event() {
             state = STATE_IDLE;
             continue;
           }
-          if (HEARTBEAT_ENABLED) Heartbeat_string[0] = 'R';
+          if (AUTO_REPLY_ENABLED) Auto_Reply_string[0] = 'R';
           for (i = 0; i < RELAY_NUM_OF_OUTPUT_MAX; i ++) {
             //Serial1.print("data["); Serial1.print(i); Serial1.print("]="); Serial1.print(data[i]); Serial1.print("\n\r");
             if (data[i] == '1') Relay_on[i] = true;
             else                Relay_on[i] = false;
-            if (HEARTBEAT_ENABLED) Heartbeat_string[i + 1] = data[i];
+            if (AUTO_REPLY_ENABLED) Auto_Reply_string[i + 1] = data[i];
+          }
+          if (AUTO_REPLY_ENABLED) {
+            Auto_Reply_string[i + 1] = check_sum;
+            Auto_Reply_time_start = millis();
           }
           if (HEARTBEAT_ENABLED) {
-            Heartbeat_string[i + 1] = check_sum;
-            Heartbeat_time_start = millis();
+            Heartbeat_time_out_value = HEARTBEAT_TIME_OUT_RECEIVED;
+            Heartbeat_time_out_reset_cnt = HEARTBEAT_TIME_OUT_RECEIVED_CNT;
           }
           state = STATE_IDLE;
           break;
@@ -120,5 +158,4 @@ void serial1Event() {
       break;
     } while (true);
   }
-  digitalWrite(LED_STATUS_PORT_NUMBER, LOW);
 }
