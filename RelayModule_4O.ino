@@ -17,6 +17,11 @@ unsigned long Heartbeat_time_start; // unit is ms.
 unsigned long Heartbeat_time_out_value; // unit is ms.
 int Heartbeat_time_out_reset_cnt;
 
+const bool WATCHDOG_ENABLED = true;
+//const bool WATCHDOG_ENABLED = false;
+const unsigned long WATCHDOG_TIME_OUT = 10000; // unit is ms. 10000 = 10sec.
+unsigned long Watchdog_time_start; // unit is ms.
+
 //const bool AUTO_REPLY_ENABLED = true;
 const bool AUTO_REPLY_ENABLED = false;
 const unsigned long AUTO_REPLY_TIME_OUT = 1000; // unit is ms. 1000 = 1sec.
@@ -34,6 +39,10 @@ void setup() {
   {
     pinMode(RELAY_PORT_NUMBER[i] , OUTPUT);
     Relay_on[i] = false;
+  }
+
+  if (WATCHDOG_ENABLED) {
+    Watchdog_time_start = millis();
   }
 
   if (AUTO_REPLY_ENABLED) {
@@ -63,6 +72,23 @@ void loop() {
   }
 
   serial1Event();
+
+  if (WATCHDOG_ENABLED) {
+    unsigned long time = millis();
+    unsigned long time_diff;
+
+    if (time < Watchdog_time_start)
+      time_diff = 0xffffffff - Watchdog_time_start + time;
+    else
+      time_diff = time - Watchdog_time_start;
+    if (time_diff >= WATCHDOG_TIME_OUT) {
+      Watchdog_time_start = millis();
+      for (int i = 0; i < RELAY_NUM_OF_OUTPUT_MAX; i ++)
+      {
+        Relay_on[i] = false;
+      }
+    }
+  }
 
   if (AUTO_REPLY_ENABLED) {
     unsigned long time = millis();
@@ -98,7 +124,7 @@ void loop() {
       else {
         Heartbeat_time_out_value = HEARTBEAT_TIME_OUT_DEFAULT;
       }
-   }
+    }
   }
 }
 
@@ -126,6 +152,9 @@ void serial1Event() {
           if (read_char != check_sum) {
             state = STATE_IDLE;
             continue;
+          }
+          if (WATCHDOG_ENABLED) {
+            Watchdog_time_start = millis();
           }
           if (AUTO_REPLY_ENABLED) Auto_Reply_string[0] = 'R';
           for (i = 0; i < RELAY_NUM_OF_OUTPUT_MAX; i ++) {
