@@ -84,10 +84,13 @@ void loop() {
       time_diff = time - Watchdog_time_start;
     if (time_diff >= WATCHDOG_TIME_OUT) {
       Watchdog_time_start = millis();
+      Serial.print("W");
       for (int i = 0; i < RELAY_NUM_OF_OUTPUT_MAX; i ++)
       {
         Relay_on[i] = false;
+        Serial.print("0");
       }
+      Serial.print("\n\r");
     }
   }
 
@@ -158,6 +161,7 @@ void serial1Event() {
             Watchdog_time_start = millis();
           }
           if (AUTO_REPLY_ENABLED) Auto_Reply_string[0] = 'R';
+          Serial.print("R");
           for (i = 0; i < RELAY_NUM_OF_OUTPUT_MAX; i ++) {
             //Serial1.print("data["); Serial1.print(i); Serial1.print("]="); Serial1.print(data[i]); Serial1.print("\n\r");
             if (data[i] == '1') Relay_on[i] = true;
