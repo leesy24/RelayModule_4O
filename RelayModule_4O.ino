@@ -1,3 +1,6 @@
+const char VERSION[] = "1.00";
+const char DATE[] = "2018-07-04";
+
 const int RELAY_NUM_OF_OUTPUT_MAX = 4;
 const int RELAY_PORT_NUMBER_START = 22;
 const int RELAY_PORT_NUMBER[RELAY_NUM_OF_OUTPUT_MAX] = {RELAY_PORT_NUMBER_START, RELAY_PORT_NUMBER_START+1, RELAY_PORT_NUMBER_START+2, RELAY_PORT_NUMBER_START+3};
@@ -12,14 +15,14 @@ const bool HEARTBEAT_ENABLED = true;
 //const bool HEARTBEAT_ENABLED = false;
 const unsigned long HEARTBEAT_TIME_OUT_DEFAULT = 1000; // unit is ms. 1000 = 1sec.
 const unsigned long HEARTBEAT_TIME_OUT_RECEIVED = 25; // unit is ms. 1000 = 1sec.
-const int HEARTBEAT_TIME_OUT_RECEIVED_CNT = 10;
+const int HEARTBEAT_TIME_OUT_RECEIVED_CNT = 10; // Status LED blinking count when data received.
 unsigned long Heartbeat_time_start; // unit is ms.
 unsigned long Heartbeat_time_out_value; // unit is ms.
 int Heartbeat_time_out_reset_cnt;
 
 const bool WATCHDOG_ENABLED = true;
 //const bool WATCHDOG_ENABLED = false;
-const unsigned long WATCHDOG_TIME_OUT = 10000; // unit is ms. 10000 = 10sec.
+const unsigned long WATCHDOG_TIME_OUT = 5000; // unit is ms. 5000 = 5sec.
 unsigned long Watchdog_time_start; // unit is ms.
 
 //const bool AUTO_REPLY_ENABLED = true;
@@ -62,6 +65,14 @@ void setup() {
     Heartbeat_time_out_value = HEARTBEAT_TIME_OUT_DEFAULT;
     Heartbeat_time_out_reset_cnt = 0;
   }
+
+  Serial.print("Version:");
+  Serial.print(VERSION);
+  Serial.print(" ");
+  Serial.print("Date:");
+  Serial.print(DATE);
+  Serial.print("\n\r");
+  Serial.flush();
 }
 
 void loop() {
@@ -91,6 +102,7 @@ void loop() {
         Serial.print("0");
       }
       Serial.print("\n\r");
+      Serial.flush();
     }
   }
 
@@ -170,6 +182,7 @@ void serial1Event() {
             Serial.print(data[i]);
           }
           Serial.print("\n\r");
+          Serial.flush();
           if (AUTO_REPLY_ENABLED) {
             Auto_Reply_string[i + 1] = check_sum;
             Auto_Reply_time_start = millis();
