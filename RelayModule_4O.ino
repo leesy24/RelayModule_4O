@@ -1,5 +1,5 @@
-const char VERSION[] = "1.00";
-const char DATE[] = "2018-07-04";
+const char VERSION[] = "1.10";
+const char DATE[] = "2018-07-26";
 
 const int RELAY_NUM_OF_OUTPUT_MAX = 4;
 const int RELAY_PORT_NUMBER_START = 22;
